@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Chat secreto: el PIN nunca se sube al repositorio
+servidor/pin.txt
+servidor/__pycache__
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

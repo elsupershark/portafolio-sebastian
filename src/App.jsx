@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Portafolio from './Portafolio.jsx'
 import ExportarProyecto from './modules/exportar/ExportarProyecto.jsx'
 import TareasSemana from './modules/tareas/TareasSemana.jsx'
+import ChatSecreto from './modules/chat/ChatSecreto.jsx'
 
 const VISTAS = [
     { id: 'portafolio', etiqueta: 'Portafolio', jp: '\u30dd\u30fc\u30c8\u30d5\u30a9\u30ea\u30aa', Comp: Portafolio },
@@ -9,6 +10,7 @@ const VISTAS = [
     { id: 'exportar', etiqueta: 'Exportar', jp: '\u30a8\u30af\u30b9\u30dd\u30fc\u30c8', Comp: ExportarProyecto },
 ]
 const KEY = 'portafolio-vista-v1'
+const ATAJO_CHAT = '4'
 
 function vistaInicial() {
     try {
@@ -20,12 +22,16 @@ function vistaInicial() {
     return 'portafolio'
 }
 
+/* El chat no aparece en la barra: se abre con Alt + 4, con #chat en la direccion o con 3 clics en la marca */
 export default function App() {
     const [vista, setVista] = useState(vistaInicial)
+    const [chat, setChat] = useState(() => window.location.hash === '#chat')
     /* Una vista, una vez abierta, queda montada: se oculta pero conserva todo su estado en memoria */
     const [montadas, setMontadas] = useState(() => new Set([vistaInicial()]))
+    const clicks = useRef([])
 
     const ir = useCallback((id) => {
+        setChat(false)
         setVista(id)
         setMontadas((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
         try {
@@ -35,9 +41,24 @@ export default function App() {
         }
     }, [])
 
+    const alternarChat = useCallback(() => setChat((c) => !c), [])
+
+    /* La direccion refleja si el chat esta abierto (sin recargar ni ensuciar el historial) */
+    useEffect(() => {
+        const h = chat ? '#chat' : ''
+        if (window.location.hash !== h) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search + h)
+        }
+    }, [chat])
+
     useEffect(() => {
         const onKey = (e) => {
             if (!e.altKey || e.ctrlKey || e.metaKey) return
+            if (e.key === ATAJO_CHAT) {
+                e.preventDefault()
+                alternarChat()
+                return
+            }
             const i = Number(e.key) - 1
             if (i >= 0 && i < VISTAS.length) {
                 e.preventDefault()
@@ -46,20 +67,29 @@ export default function App() {
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [ir])
+    }, [ir, alternarChat])
+
+    function clicMarca() {
+        const ahora = Date.now()
+        clicks.current = [...clicks.current.filter((t) => ahora - t < 900), ahora]
+        if (clicks.current.length >= 3) {
+            clicks.current = []
+            alternarChat()
+        }
+    }
 
     return (
         <div className="app-shell">
             <nav className="topnav" aria-label="M&oacute;dulos">
-                <span className="topnav-brand">{'SEBASTI\u00c1N // SYS'}</span>
+                <span className="topnav-brand" onClick={clicMarca} style={{ userSelect: 'none' }}>{'SEBASTI\u00c1N // SYS'}</span>
                 <div className="topnav-tabs" role="tablist">
                     {VISTAS.map((v, i) => (
                         <button
                             key={v.id}
                             type="button"
                             role="tab"
-                            aria-selected={v.id === vista}
-                            className={'topnav-tab' + (v.id === vista ? ' on' : '')}
+                            aria-selected={!chat && v.id === vista}
+                            className={'topnav-tab' + (!chat && v.id === vista ? ' on' : '')}
                             title={'Alt + ' + (i + 1)}
                             onClick={() => ir(v.id)}
                         >
@@ -72,10 +102,16 @@ export default function App() {
             </nav>
             {VISTAS.map((v) =>
                 montadas.has(v.id) ? (
-                    <div key={v.id} className="app-view" role="tabpanel" style={v.id === vista ? undefined : { display: 'none' }}>
+                    <div key={v.id} className="app-view" role="tabpanel" style={!chat && v.id === vista ? undefined : { display: 'none' }}>
                         <v.Comp />
                     </div>
                 ) : null
+            )}
+            {/* El chat se desmonta al salir: no deja mensajes en memoria del navegador */}
+            {chat && (
+                <div className="app-view" role="tabpanel">
+                    <ChatSecreto onVolver={() => setChat(false)} />
+                </div>
             )}
         </div>
     )

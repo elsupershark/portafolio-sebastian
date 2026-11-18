@@ -89,3 +89,7 @@ Se usan como decoración: nunca reemplazan al texto en español que explica la a
     [ ] Al menos un elemento en japonés
     [ ] Textos de interfaz en español
     [ ] Funciona en móvil (menos de 640 px)
+
+## Usabilidad
+
+Ver también `docs/ESTETICA_USABILIDAD.md`: sin scroll en la página entera, sin cards ni texto innecesarios, pensado para recordar y con letras gruesas. Es obligatorio igual que esta guía.

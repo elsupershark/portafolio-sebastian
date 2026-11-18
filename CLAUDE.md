@@ -12,3 +12,6 @@ están en `src/index.css`.
 
 Stack: React 19 + Vite + Tailwind CSS 4. Indentación de 4 espacios en los módulos nuevos.
 Los textos de la interfaz van en español.
+
+Antes de crear interfaces lee también `docs/ESTETICA_USABILIDAD.md` (sin scroll de página, sin cards ni texto innecesarios, letras gruesas).
+El módulo del chat secreto está documentado en `docs/CHAT.md`. No aparece en la navegación: se abre con Alt + 4 o con #chat.
