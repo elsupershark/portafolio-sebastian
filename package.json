@@ -9,10 +9,12 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "chat": "vite build && python servidor/chat_servidor.py",
-        "chat:solo": "python servidor/chat_servidor.py"
+        "chat:solo": "python servidor/chat_servidor.py",
+        "chat:vercel": "vercel dev"
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.3.5",
+        "@upstash/redis": "^1.35.0",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
         "tailwindcss": "^4.3.5"

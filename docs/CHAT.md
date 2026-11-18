@@ -96,3 +96,8 @@ Variables de entorno (PowerShell):
 ## Uso responsable
 
 Este chat solo intercambia texto. No transfiere archivos binarios ni está pensado para eludir controles de seguridad. Si la política de la empresa no permite usarlo, usa un método aprobado o consulta a soporte.
+## Versión en Vercel
+
+Existe una segunda versión del chat que corre en Vercel (funciones serverless + Upstash Redis), con clave larga, sesión firmada y límite de intentos. Está explicada, con los pasos de despliegue y la sección de seguridad, en `docs/CHAT_VERCEL.md`.
+
+La versión local (servidor Python y PIN) sigue intacta. La pantalla del chat detecta sola con cuál habla: si el servidor no tiene /api/chat/login, usa el PIN como antes.

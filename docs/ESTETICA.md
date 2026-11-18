@@ -93,3 +93,6 @@ Se usan como decoración: nunca reemplazan al texto en español que explica la a
 ## Usabilidad
 
 Ver también `docs/ESTETICA_USABILIDAD.md`: sin scroll en la página entera, sin cards ni texto innecesarios, pensado para recordar y con letras gruesas. Es obligatorio igual que esta guía.
+## Pantallas de acceso
+
+Los módulos con clave (chat en Vercel) usan los mismos tokens y efectos de esta guía, sin colores nuevos. El bloqueo temporal se muestra en amarillo (advertencia) con un punto, y los errores de clave en rosa. Detalle en `docs/CHAT_VERCEL.md`.

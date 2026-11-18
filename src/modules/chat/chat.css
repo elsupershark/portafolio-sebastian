@@ -202,3 +202,8 @@
 @media (prefers-reduced-motion: reduce) {
     .chat-root * { transition: none !important; animation: none !important; }
 }
+/* ---------- Vercel: acceso por clave larga y legibilidad ---------- */
+.chat-root .login input { font-size: 1.05rem; letter-spacing: .06em; text-align: left; }
+.chat-root .del { font-weight: 700; }
+.chat-root .mas { font-size: .75rem; }
+.chat-root .estado.lock { color: #ffe14d; }

@@ -1,7 +1,8 @@
-/* Logica pura del modulo Chat secreto (comunicacion con el servidor Python y utilidades) */
+/* Logica pura del modulo Chat secreto.
+   Misma ruta (/api/chat) para la version Vercel (sesion por cookie) y el servidor Python local (PIN en cabecera). */
 
 export const API = '/api/chat'
-export const PIN_KEY = 'sys-c-pin'
+export const PIN_KEY = 'sys-c-pin' /* solo se usa con el servidor Python local */
 export const NICK_KEY = 'sys-c-nick'
 export const CID_KEY = 'sys-c-id'
 
@@ -33,12 +34,37 @@ export function idDispositivo() {
     return nuevo
 }
 
-export function apiFetch(path, pin, opts = {}) {
-    return fetch(API + path, {
-        ...opts,
-        cache: 'no-store',
-        headers: { 'X-Pin': pin, ...(opts.headers || {}) },
-    })
+/* La cookie de sesion viaja sola (HttpOnly). Solo en modo local se envia el PIN. */
+export function apiFetch(path, opts = {}, pin = '') {
+    const headers = { ...(opts.headers || {}) }
+    if (pin) headers['X-Pin'] = pin
+    return fetch(API + path, { ...opts, cache: 'no-store', credentials: 'same-origin', headers })
+}
+
+/* Devuelve: 'sesion' (Vercel), 'pin' (servidor Python local), 'mal', 'espera' o 'error' */
+export async function iniciarSesion(clave) {
+    try {
+        const r = await apiFetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: clave }),
+        })
+        if (r.ok) return 'sesion'
+        if (r.status === 404) return 'pin'
+        if (r.status === 401) return 'mal'
+        if (r.status === 429) return 'espera'
+        return 'error'
+    } catch (e) {
+        return 'error'
+    }
+}
+
+export async function cerrarSesion() {
+    try {
+        await apiFetch('/logout', { method: 'POST' })
+    } catch (e) {
+        /* sin conexion: se ignora */
+    }
 }
 
 export function fmtBytes(n) {
@@ -49,7 +75,7 @@ export function fmtBytes(n) {
 
 export const hora = (ms) => new Date(ms).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
 
-/* Copia al portapapeles; si la pagina es http://IP (no segura) usa el metodo antiguo */
+/* Copia al portapapeles; si la pagina no es segura usa el metodo antiguo */
 export async function copyText(texto) {
     if (navigator.clipboard && window.isSecureContext) {
         try {

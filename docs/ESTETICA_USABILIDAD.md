@@ -61,3 +61,9 @@ Una card (panel con borde y esquinas) se usa solo cuando agrupa algo que realmen
     [ ] Las acciones principales están siempre visibles
     [ ] Ninguna letra fina
     [ ] Hay atajo o gesto rápido para la acción más repetida
+## Pantallas de acceso
+
+    - Un solo campo y un solo botón (ENTRAR). Errores de una o dos palabras.
+    - La sesión se recuerda en el navegador: la clave se escribe una vez, no a cada rato.
+    - La consulta periódica se pausa con la pestaña oculta y se reanuda al volver.
+    - Letras gruesas también en botones pequeños: tamaño mínimo 0.75rem.

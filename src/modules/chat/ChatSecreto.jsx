@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import './chat.css'
 import {
-    NICK_KEY, PIN_KEY, apiFetch, copyText, fmtBytes, guardar, hora, idDispositivo, leer,
+    NICK_KEY, PIN_KEY, apiFetch, cerrarSesion, copyText, fmtBytes, guardar, hora, idDispositivo,
+    iniciarSesion, leer,
 } from './lib.js'
 
 const JP = {
@@ -12,10 +13,11 @@ const JP = {
 }
 const MAX_FILE = 1024 * 1024
 const LINEAS = 5
+const POLL_MS = 2000
 
 function Mensaje({ m, mio, abierto, copiado, onCopiar, onToggle, onBorrar }) {
     const largo = m.text.split('\n').length > LINEAS || m.text.length > 360
-    const quien = m.nick ? m.nick + ' \u00b7 ' + m.ip : m.ip
+    const quien = m.nick || m.ip || '\u2014'
     return (
         <article className={'msg' + (mio ? ' mio' : '') + (copiado ? ' copiado' : '')} onClick={() => {
             if (window.getSelection().toString()) return
@@ -26,7 +28,7 @@ function Mensaje({ m, mio, abierto, copiado, onCopiar, onToggle, onBorrar }) {
                 <span className="meta-r">
                     <span>{hora(m.time)}</span>
                     {mio && (
-                        <button type="button" className="del" title="Borrar este mensaje" aria-label="Borrar este mensaje"
+                        <button type="button" className="del" title="Borrar" aria-label="Borrar este mensaje"
                             onClick={(e) => { e.stopPropagation(); onBorrar(m) }}>
                             {'\u00d7'}
                         </button>
@@ -48,8 +50,11 @@ function Mensaje({ m, mio, abierto, copiado, onCopiar, onToggle, onBorrar }) {
 }
 
 export default function ChatSecreto({ onVolver }) {
+    /* pin: solo con el servidor Python local. En Vercel la sesion vive en una cookie HttpOnly. */
     const [pin, setPin] = useState(() => leer(PIN_KEY))
-    const [pinTxt, setPinTxt] = useState('')
+    const [auth, setAuth] = useState(() => (leer(PIN_KEY) ? 'in' : 'check'))
+    const [claveTxt, setClaveTxt] = useState('')
+    const [cargando, setCargando] = useState(false)
     const [authErr, setAuthErr] = useState('')
     const [msgs, setMsgs] = useState([])
     const [estado, setEstado] = useState('off')
@@ -70,54 +75,79 @@ export default function ChatSecreto({ onVolver }) {
     const copiadoTimer = useRef(0)
     const dragDepth = useRef(0)
 
+    const dentro = auth === 'in'
+    const activo = auth !== 'out'
+
     const aviso = (msg, kind = '') => {
         setToastState({ msg, kind })
         clearTimeout(toastTimer.current)
         toastTimer.current = setTimeout(() => setToastState(null), 2000)
     }
 
-    /* ---------- Consulta periodica de mensajes (solo mientras esta abierto el chat) ---------- */
+    /* ---------- Consulta periodica: cada 2 s mientras la pestana esta visible; se pausa al ocultarse ---------- */
     useEffect(() => {
-        if (!pin) return undefined
+        if (!activo) return undefined
         let vivo = true
         let t = 0
-        revRef.current = -1
+        let enVuelo = false
+
         async function poll() {
-            let espera = 1500
+            if (!vivo || enVuelo || document.hidden) return
+            clearTimeout(t)
+            enVuelo = true
+            let espera = POLL_MS
+            let seguir = true
             try {
-                const r = await apiFetch('/messages?rev=' + revRef.current, pin)
+                const r = await apiFetch('/messages?rev=' + revRef.current, {}, pin)
                 if (!vivo) return
-                if (r.status === 401) {
-                    guardar(PIN_KEY, '')
-                    setPin('')
+                if (r.status === 404 || r.status === 401) {
+                    /* sin sesion valida (o PIN incorrecto en modo local) */
+                    seguir = false
+                    revRef.current = -1
+                    if (pin) {
+                        guardar(PIN_KEY, '')
+                        setPin('')
+                    }
+                    setAuthErr(pin && r.status === 401 ? 'CLAVE INCORRECTA' : '')
+                    setMsgs([])
                     setEstado('off')
-                    setAuthErr('PIN incorrecto')
-                    return
-                }
-                if (r.status === 429) {
+                    setAuth('out')
+                } else if (r.status === 429) {
                     setEstado('lock')
                     espera = 5000
-                } else {
+                } else if (r.ok) {
                     const d = await r.json()
                     if (!vivo) return
                     setEstado('ok')
+                    setAuth('in')
                     if (!d.unchanged) {
                         revRef.current = d.rev
-                        setMsgs(d.messages)
+                        setMsgs(d.messages || [])
                     }
+                } else {
+                    setEstado('off')
+                    espera = 4000
                 }
             } catch {
-                if (!vivo) return
-                setEstado('off')
+                if (vivo) setEstado('off')
+            } finally {
+                enVuelo = false
             }
-            if (vivo) t = setTimeout(poll, espera)
+            if (vivo && seguir && !document.hidden) t = setTimeout(poll, espera)
         }
+
+        const onVis = () => {
+            if (document.hidden) clearTimeout(t)
+            else poll()
+        }
+        document.addEventListener('visibilitychange', onVis)
         poll()
         return () => {
             vivo = false
             clearTimeout(t)
+            document.removeEventListener('visibilitychange', onVis)
         }
-    }, [pin, kick])
+    }, [activo, pin, kick])
 
     /* Baja al ultimo mensaje cuando llega uno nuevo */
     useEffect(() => {
@@ -127,21 +157,35 @@ export default function ChatSecreto({ onVolver }) {
     }, [msgs])
 
     /* ---------- Acceso ---------- */
-    function entrar(e) {
+    async function entrar(e) {
         e.preventDefault()
-        const p = pinTxt.trim()
-        if (!p) return
-        guardar(PIN_KEY, p)
+        const k = claveTxt.trim()
+        if (!k || cargando) return
+        setCargando(true)
         setAuthErr('')
-        setPinTxt('')
-        setPin(p)
+        const r = await iniciarSesion(k)
+        setCargando(false)
+        if (r === 'sesion') {
+            setClaveTxt('')
+            setAuth('in')
+        } else if (r === 'pin') {
+            guardar(PIN_KEY, k)
+            setPin(k)
+            setClaveTxt('')
+            setAuth('in')
+        } else {
+            setAuthErr(r === 'mal' ? 'CLAVE INCORRECTA' : r === 'espera' ? 'ESPERA UN MOMENTO' : 'ERROR')
+        }
     }
 
-    function salir() {
+    async function salir() {
+        await cerrarSesion()
         guardar(PIN_KEY, '')
         setPin('')
+        revRef.current = -1
         setMsgs([])
         setEstado('off')
+        setAuth('out')
         onVolver()
     }
 
@@ -149,12 +193,17 @@ export default function ChatSecreto({ onVolver }) {
     async function enviar(t, nombre) {
         if (!t || !t.trim()) return false
         try {
-            const r = await apiFetch('/send', pin, {
+            const r = await apiFetch('/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: t, name: nombre || '', nick: nick.trim(), cid }),
-            })
+            }, pin)
             if (r.status === 413) { aviso('Mensaje demasiado grande', 'err'); return false }
+            if (r.status === 404 || r.status === 401) {
+                setMsgs([])
+                setAuth('out')
+                return false
+            }
             if (!r.ok) throw new Error('fallo')
             return true
         } catch {
@@ -177,7 +226,7 @@ export default function ChatSecreto({ onVolver }) {
         for (const f of files) {
             if (f.size > MAX_FILE) { aviso(f.name + ' supera 1 MB', 'err'); continue }
             const t = await f.text()
-            if (t.includes('\u0000')) { aviso(f.name + ' no parece ser texto', 'err'); continue }
+            if (t.includes('\u0000')) { aviso(f.name + ' no es texto', 'err'); continue }
             await enviar(t, f.name)
         }
         setKick((k) => k + 1)
@@ -185,11 +234,11 @@ export default function ChatSecreto({ onVolver }) {
 
     async function borrar(m) {
         try {
-            await apiFetch('/delete', pin, {
+            await apiFetch('/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: m.id, cid }),
-            })
+            }, pin)
         } catch {
             aviso('No se pudo borrar', 'err')
         }
@@ -200,7 +249,7 @@ export default function ChatSecreto({ onVolver }) {
         if (!window.confirm('\u00bfBorrar todos los mensajes?')) return
         setAbiertos(new Set())
         try {
-            await apiFetch('/clear', pin, { method: 'POST' })
+            await apiFetch('/clear', { method: 'POST' }, pin)
         } catch {
             aviso('No se pudo borrar', 'err')
         }
@@ -214,13 +263,13 @@ export default function ChatSecreto({ onVolver }) {
         setCopiado(m.id)
         clearTimeout(copiadoTimer.current)
         copiadoTimer.current = setTimeout(() => setCopiado(null), 800)
-        aviso('COPIADO AL PORTAPAPELES', 'ok')
+        aviso('COPIADO', 'ok')
     }
 
     function copiarUltimo() {
         const ajenos = msgs.filter((m) => m.cid !== cid)
         const m = ajenos.length ? ajenos[ajenos.length - 1] : msgs[msgs.length - 1]
-        if (!m) { aviso('No hay mensajes', 'err'); return }
+        if (!m) { aviso('Sin mensajes', 'err'); return }
         copiar(m)
     }
 
@@ -248,7 +297,7 @@ export default function ChatSecreto({ onVolver }) {
         e.preventDefault()
         dragDepth.current = 0
         setArrastrando(false)
-        if (e.dataTransfer.files.length) subir(Array.from(e.dataTransfer.files))
+        if (dentro && e.dataTransfer.files.length) subir(Array.from(e.dataTransfer.files))
     }
 
     const estadoTxt = estado === 'ok' ? 'EN L\u00cdNEA' : estado === 'lock' ? 'BLOQUEADO' : 'SIN CONEXI\u00d3N'
@@ -269,7 +318,7 @@ export default function ChatSecreto({ onVolver }) {
                         <h1 className="glitch" data-text="Chat secreto">Chat secreto</h1>
                     </div>
                     <div className="head-r">
-                        {pin && (
+                        {dentro && (
                             <>
                                 <input
                                     type="text" className="nick" maxLength={30} spellCheck={false} autoComplete="off"
@@ -282,26 +331,28 @@ export default function ChatSecreto({ onVolver }) {
                             </>
                         )}
                         <button type="button" className="btn-ghost btn-sm" onClick={onVolver}>{'VOLVER \u00b7 ' + JP.volver}</button>
-                        {pin && <button type="button" className="btn-ghost btn-sm" onClick={salir}>SALIR</button>}
+                        {dentro && <button type="button" className="btn-ghost btn-sm" onClick={salir}>SALIR</button>}
                     </div>
                 </header>
 
-                {!pin ? (
+                {(auth === 'out' || (auth === 'check' && estado === 'off')) && (
                     <form className="panel login" onSubmit={entrar}>
-                        <h2>PIN <span className="jp">{JP.acceso}</span></h2>
+                        <h2>CLAVE <span className="jp">{JP.acceso}</span></h2>
                         <input
-                            type="password" inputMode="numeric" autoComplete="off" autoFocus maxLength={64}
-                            aria-label="PIN de acceso" value={pinTxt} onChange={(e) => setPinTxt(e.target.value)}
+                            type="password" name="clave" autoComplete="current-password" autoFocus maxLength={256}
+                            aria-label="Clave" value={claveTxt} onChange={(e) => setClaveTxt(e.target.value)}
                         />
-                        <button type="submit" className="btn-primary btn-big" disabled={!pinTxt.trim()}>ENTRAR</button>
+                        <button type="submit" className="btn-primary btn-big" disabled={!claveTxt.trim() || cargando}>ENTRAR</button>
                         <p className="login-err" role="alert">{authErr}</p>
                     </form>
-                ) : (
+                )}
+
+                {dentro && (
                     <section className="panel main">
                         <div className="lista" ref={listaRef} aria-label="Mensajes">
                             {!msgs.length && (
                                 <p className="vacio">
-                                    Sin mensajes<br />
+                                    Vac&iacute;o<br />
                                     <span className="jp">{'\u7a7a'}</span>
                                 </p>
                             )}
@@ -315,13 +366,13 @@ export default function ChatSecreto({ onVolver }) {
                         </div>
                         <form className="compose" onSubmit={onSubmit}>
                             <input ref={fileRef} type="file" multiple hidden onChange={(e) => { subir(Array.from(e.target.files)); e.target.value = '' }} />
-                            <button type="button" className="btn-secondary adj" title="Adjuntar archivo de texto" aria-label="Adjuntar archivo de texto" onClick={() => fileRef.current && fileRef.current.click()}>
+                            <button type="button" className="btn-secondary adj" title="Adjuntar texto" aria-label="Adjuntar archivo de texto" onClick={() => fileRef.current && fileRef.current.click()}>
                                 +
                             </button>
                             <textarea
                                 ref={taRef} rows={1} spellCheck={false} autoFocus
                                 aria-label="Mensaje" value={texto}
-                                placeholder="Pega un comando o texto... (Enter env&iacute;a)"
+                                placeholder="Pega o escribe..."
                                 onChange={(e) => {
                                     setTexto(e.target.value)
                                     e.target.style.height = 'auto'
@@ -340,7 +391,7 @@ export default function ChatSecreto({ onVolver }) {
                 )}
             </div>
 
-            {arrastrando && pin && <div className="chat-drop">Suelta los archivos de texto</div>}
+            {arrastrando && dentro && <div className="chat-drop">Suelta el texto</div>}
 
             <div className={'toast' + (toastState ? ' show ' + toastState.kind : '')} role="status" aria-live="polite">
                 {toastState ? toastState.msg : ''}

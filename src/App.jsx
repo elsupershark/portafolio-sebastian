@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import Portafolio from './Portafolio.jsx'
 import ExportarProyecto from './modules/exportar/ExportarProyecto.jsx'
 import TareasSemana from './modules/tareas/TareasSemana.jsx'
-import ChatSecreto from './modules/chat/ChatSecreto.jsx'
+
+/* El chat se carga solo cuando se abre: su codigo no va en el bundle principal */
+const ChatSecreto = lazy(() => import('./modules/chat/ChatSecreto.jsx'))
 
 const VISTAS = [
     { id: 'portafolio', etiqueta: 'Portafolio', jp: '\u30dd\u30fc\u30c8\u30d5\u30a9\u30ea\u30aa', Comp: Portafolio },
@@ -110,7 +112,9 @@ export default function App() {
             {/* El chat se desmonta al salir: no deja mensajes en memoria del navegador */}
             {chat && (
                 <div className="app-view" role="tabpanel">
-                    <ChatSecreto onVolver={() => setChat(false)} />
+                    <Suspense fallback={null}>
+                        <ChatSecreto onVolver={() => setChat(false)} />
+                    </Suspense>
                 </div>
             )}
         </div>

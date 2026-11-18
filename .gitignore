@@ -26,3 +26,7 @@ servidor/__pycache__
 *.njsproj
 *.sln
 *.sw?
+# Vercel y variables de entorno: nunca se suben al repositorio
+.env
+.env.local
+.vercel
