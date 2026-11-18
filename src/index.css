@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --color-void: #05020d;
+  --color-neon-green: #00ff9c;
+  --color-neon-blue: #00d4ff;
+  --color-neon-purple: #b026ff;
+  --color-neon-pink: #ff2a6d;
+  --font-display: "Orbitron", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+}
+
+/* Cuadrícula tipo Tron */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 255, 156, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+/* Líneas de monitor CRT */
+.scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03) 0,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Efecto glitch */
+.glitch {
+  position: relative;
+  text-shadow: 0 0 8px #00ff9c, 0 0 24px rgba(0, 255, 156, 0.6);
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.glitch::before {
+  color: #ff2a6d;
+  transform: translate(2px, 0);
+  animation: glitch-a 2.5s infinite steps(1);
+}
+.glitch::after {
+  color: #00d4ff;
+  transform: translate(-2px, 0);
+  animation: glitch-b 3s infinite steps(1);
+}
+@keyframes glitch-a {
+  0%, 90%, 100% { clip-path: inset(0 0 100% 0); }
+  92% { clip-path: inset(20% 0 55% 0); }
+  96% { clip-path: inset(65% 0 10% 0); }
+}
+@keyframes glitch-b {
+  0%, 85%, 100% { clip-path: inset(0 0 100% 0); }
+  87% { clip-path: inset(50% 0 30% 0); }
+  93% { clip-path: inset(10% 0 70% 0); }
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+.cursor { animation: blink 1s steps(1) infinite; }
