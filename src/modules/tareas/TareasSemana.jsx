@@ -15,13 +15,14 @@ function TextoTarea({ texto }) {
     )
 }
 
-export default function TareasSemana({ onVolver }) {
+export default function TareasSemana() {
     const [tasks, setTasks] = useState(() => loadTasks())
     const [weekStart, setWeekStart] = useState(() => mondayOf(hoyHabil()))
     const [composer, setComposer] = useState(null)
     const [editing, setEditing] = useState(null)
     const [dragOver, setDragOver] = useState(null)
     const [regTab, setRegTab] = useState('semana')
+    const [panelReg, setPanelReg] = useState(false)
     const [toastState, setToastState] = useState(null)
     const timer = useRef(0)
 
@@ -182,97 +183,55 @@ export default function TareasSemana({ onVolver }) {
             <div className="wrap">
                 <header>
                     <div className="logo">{'\u2713'}</div>
-                    <div className="grow">
+                    <div className="head-t">
                         <p className="eyebrow">{'// ' + JP.tareas + ' \u00b7 M\u00d3DULO EN L\u00cdNEA'}</p>
                         <h1 className="glitch" data-text="Tareas semanales">Tareas semanales</h1>
-                        <p className="sub">Micro tareas de la semana, de lunes a viernes. Escribe una por l&iacute;nea, complet&aacute;las durante el d&iacute;a y mira c&oacute;mo sube tu nivel. Todo se guarda en tu navegador.</p>
                     </div>
-                    {onVolver && <button type="button" className="btn-ghost btn-sm" onClick={onVolver}>{'\u2190 VOLVER \u00b7 ' + JP.volver}</button>}
-                </header>
-
-                {/* Progreso */}
-                <section className="panel">
-                    <h2>Progreso <span className="jp">{JP.nivel}</span></h2>
-                    <div className="stats">
+                    <div className="hud" aria-label="Progreso">
                         <div className="stat ok">
-                            <div className="v">{stats.nivel}</div>
                             <div className="k">Nivel</div>
+                            <div className="v">{stats.nivel}</div>
                             <div className="bar"><i style={{ width: Math.round((stats.xpNivel / XP_POR_NIVEL) * 100) + '%' }} /></div>
-                            <div className="k sm">XP {stats.xpNivel}/{XP_POR_NIVEL} &middot; +{XP_POR_TAREA} por tarea</div>
                         </div>
                         <div className="stat">
-                            <div className="v">{hoyHechas}/{hoyTotal}</div>
+                            <div className="k">XP</div>
+                            <div className="v">{stats.xpNivel}/{XP_POR_NIVEL}</div>
+                            <div className="k">+{XP_POR_TAREA} por tarea</div>
+                        </div>
+                        <div className="stat">
                             <div className="k">Hoy</div>
+                            <div className="v">{hoyHechas}/{hoyTotal}</div>
                         </div>
                         <div className="stat">
+                            <div className="k">Semana</div>
                             <div className="v">{hechasSemana}/{totalSemana}</div>
-                            <div className="k">Esta semana</div>
                             <div className="bar"><i style={{ width: pctSemana + '%' }} /></div>
                         </div>
                         <div className="stat">
+                            <div className="k">Racha<span className="jp">{JP.racha}</span></div>
                             <div className="v">{stats.racha}</div>
-                            <div className="k">{'Racha \u00b7 d\u00edas h\u00e1biles'} <span className="jp">{JP.racha}</span></div>
-                        </div>
-                        <div className="stat">
-                            <div className="v">{stats.totalHechas}</div>
-                            <div className="k">Completadas en total</div>
                         </div>
                     </div>
-                </section>
+                </header>
 
-                {/* Semana */}
-                <section className="panel">
-                    <h2>Semana <span className="jp">{JP.semana}</span></h2>
-                    <div className="toolbar">
-                        <button type="button" className="btn-primary" onClick={() => abrirComposer()}>+ A&Ntilde;ADIR TAREAS</button>
-                        <button type="button" className="btn-secondary" onClick={() => setWeekStart((w) => addDays(w, -7))}>&larr; ANTERIOR</button>
-                        <span className="range">{fmtCorto(keys[0])} &ndash; {fmtCorto(keys[4])} {weekStart.getFullYear()}</span>
-                        <button type="button" className="btn-secondary" onClick={() => setWeekStart((w) => addDays(w, 7))}>SIGUIENTE &rarr;</button>
-                        <button type="button" className="btn-ghost btn-sm" disabled={esSemanaActual} onClick={() => setWeekStart(mondayOf(hoyHabil()))}>IR A HOY</button>
-                        <button type="button" className="btn-ghost btn-sm push" disabled={!totalSemana} onClick={copiarResumen}>COPIAR RESUMEN</button>
-                    </div>
+                <div className="toolbar">
+                    <button type="button" className="btn-primary" onClick={() => abrirComposer()}>+ A&Ntilde;ADIR TAREAS</button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => setWeekStart((w) => addDays(w, -7))}>&larr; ANTERIOR</button>
+                    <span className="range">{fmtCorto(keys[0])} &ndash; {fmtCorto(keys[4])} {weekStart.getFullYear()}</span>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => setWeekStart((w) => addDays(w, 7))}>SIGUIENTE &rarr;</button>
+                    <button type="button" className="btn-ghost btn-sm" disabled={esSemanaActual} onClick={() => setWeekStart(mondayOf(hoyHabil()))}>IR A HOY</button>
                     {pendientes > 0 && (
-                        <div className="alert warn">
-                            <span>Tienes {pendientes} {pendientes === 1 ? 'tarea pendiente' : 'tareas pendientes'} de d&iacute;as anteriores.</span>
+                        <span className="pend">
+                            {pendientes} {pendientes === 1 ? 'pendiente' : 'pendientes'} de d&iacute;as anteriores
                             <button type="button" className="btn-secondary btn-sm" onClick={traerPendientes}>TRAER A HOY</button>
-                        </div>
+                        </span>
                     )}
-                    <p className="hint">Arrastra una tarea a otro d&iacute;a para moverla &middot; doble clic para editarla &middot; usa <b>#etiquetas</b> para marcar proyectos o tickets.</p>
-                </section>
-
-                {/* Composer */}
-                {composer && (
-                    <section className="panel composer">
-                        <h2>A&ntilde;adir tareas <span className="jp">{JP.tareas}</span></h2>
-                        <div className="chips" role="radiogroup" aria-label="D&iacute;a de las tareas">
-                            {keys.map((k, i) => (
-                                <label key={k} className="chip">
-                                    <input type="radio" name="tar-dia" checked={composer.day === k} onChange={() => setComposer((c) => ({ ...c, day: k }))} />
-                                    <span>{DIAS[i].corto} <small>{fromKey(k).getDate()}</small></span>
-                                </label>
-                            ))}
-                        </div>
-                        <textarea
-                            autoFocus
-                            spellCheck={false}
-                            aria-label="Tareas, una por l&iacute;nea"
-                            value={composer.text}
-                            onChange={(e) => setComposer((c) => ({ ...c, text: e.target.value }))}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); crearTareas() }
-                                if (e.key === 'Escape') setComposer(null)
-                            }}
-                            placeholder={'hacer informe 1\nhacer informe 7\njustificar informe 7'}
-                        />
-                        <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
-                            <button type="button" className="btn-primary" disabled={!lineasComposer} onClick={crearTareas}>
-                                CREAR {lineasComposer || ''} {lineasComposer === 1 ? 'TAREA' : 'TAREAS'}
-                            </button>
-                            <button type="button" className="btn-ghost" onClick={() => setComposer(null)}>CANCELAR</button>
-                            <span className="hint push" style={{ margin: 0 }}>Una tarea por l&iacute;nea &middot; <b>Enter</b> = salto de l&iacute;nea &middot; <b>Ctrl + Enter</b> = crear</span>
-                        </div>
-                    </section>
-                )}
+                    <span className="tip push">Arrastra para mover &middot; doble clic para editar &middot; <b>#etiquetas</b></span>
+                    <button type="button" className="btn-ghost btn-sm" disabled={!totalSemana} onClick={copiarResumen}>COPIAR RESUMEN</button>
+                    <button type="button" className="btn-secondary btn-sm" onClick={() => setPanelReg((v) => !v)}>
+                        {(panelReg ? 'CERRAR REGISTRO' : 'REGISTRO') + ' \u00b7 ' + JP.registro}
+                    </button>
+                </div>
 
                 {/* Tablero */}
                 <div className="board">
@@ -363,19 +322,68 @@ export default function TareasSemana({ onVolver }) {
                         )
                     })}
                 </div>
+            </div>
 
-                {/* Registro y actividad */}
-                <div className="bottom">
-                    <section className="panel">
-                        <h2>Registro <span className="jp">{JP.registro}</span></h2>
-                        <div className="toolbar">
-                            <div className="seg" role="group" aria-label="Rango del registro">
-                                <button type="button" aria-pressed={regTab === 'semana'} onClick={() => setRegTab('semana')}>ESTA SEMANA</button>
-                                <button type="button" aria-pressed={regTab === 'todo'} onClick={() => setRegTab('todo')}>HISTORIAL</button>
-                            </div>
+            {/* Composer: ventana flotante para no desplazar el tablero */}
+            {composer && (
+                <div className="modal-bg">
+                    <section className="panel modal" role="dialog" aria-modal="true" aria-label="A&ntilde;adir tareas">
+                        <h2>A&ntilde;adir tareas <span className="jp">{JP.tareas}</span></h2>
+                        <div className="chips" role="radiogroup" aria-label="D&iacute;a de las tareas">
+                            {keys.map((k, i) => (
+                                <label key={k} className="chip">
+                                    <input type="radio" name="tar-dia" checked={composer.day === k} onChange={() => setComposer((c) => ({ ...c, day: k }))} />
+                                    <span>{DIAS[i].corto} <small>{fromKey(k).getDate()}</small></span>
+                                </label>
+                            ))}
+                        </div>
+                        <textarea
+                            autoFocus
+                            spellCheck={false}
+                            aria-label="Tareas, una por l&iacute;nea"
+                            value={composer.text}
+                            onChange={(e) => setComposer((c) => ({ ...c, text: e.target.value }))}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); crearTareas() }
+                                if (e.key === 'Escape') setComposer(null)
+                            }}
+                            placeholder={'hacer informe 1\nhacer informe 7\njustificar informe 7'}
+                        />
+                        <div className="toolbar" style={{ marginTop: 12 }}>
+                            <button type="button" className="btn-primary" disabled={!lineasComposer} onClick={crearTareas}>
+                                CREAR {lineasComposer || ''} {lineasComposer === 1 ? 'TAREA' : 'TAREAS'}
+                            </button>
+                            <button type="button" className="btn-ghost" onClick={() => setComposer(null)}>CANCELAR</button>
+                            <span className="tip push">Una por l&iacute;nea &middot; <b>Ctrl + Enter</b> = crear &middot; <b>Esc</b> = cerrar</span>
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            {/* Registro y actividad: panel lateral */}
+            {panelReg && (
+                <aside className="drawer" aria-label="Registro y actividad">
+                    <div className="drawer-head">
+                        <h2>Actividad <span className="jp">{JP.actividad}</span></h2>
+                        <button type="button" className="btn-ghost btn-sm" onClick={() => setPanelReg(false)}>{'\u00d7 CERRAR'}</button>
+                    </div>
+                    <div className="drawer-sec">
+                        <div className="hm" role="img" aria-label="Mapa de actividad de las \u00faltimas 8 semanas">
+                            <span />
+                            {DIAS.map((d) => <span key={d.corto} className="hm-h">{d.corto.charAt(0)}</span>)}
+                            {actividad.map((fila) => (
+                                <FilaActividad key={fila.lunes} fila={fila} hoyKey={hoyKey} />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="drawer-log">
+                        <h2 style={{ margin: 0 }}>Registro <span className="jp">{JP.registro}</span></h2>
+                        <div className="seg" role="group" aria-label="Rango del registro" style={{ alignSelf: 'flex-start' }}>
+                            <button type="button" aria-pressed={regTab === 'semana'} onClick={() => setRegTab('semana')}>ESTA SEMANA</button>
+                            <button type="button" aria-pressed={regTab === 'todo'} onClick={() => setRegTab('todo')}>HISTORIAL</button>
                         </div>
                         <div className="log">
-                            {!registro.length && <p className="empty-msg">{'Aún no hay tareas completadas en este rango.'}</p>}
+                            {!registro.length && <p className="empty-msg">{'A\u00fan no hay tareas completadas en este rango.'}</p>}
                             {registro.map((g) => (
                                 <div key={g.key} className="log-day">
                                     <h3>{fmtLargo(g.key)} <span className="jp">{JP.completado} {g.items.length}</span></h3>
@@ -390,26 +398,10 @@ export default function TareasSemana({ onVolver }) {
                                 </div>
                             ))}
                         </div>
-                    </section>
+                    </div>
+                </aside>
+            )}
 
-                    <section className="panel">
-                        <h2>Actividad <span className="jp">{JP.actividad}</span></h2>
-                        <div className="hm" role="img" aria-label="Mapa de actividad de las \u00faltimas 8 semanas">
-                            <span />
-                            {DIAS.map((d) => <span key={d.corto} className="hm-h">{d.corto.charAt(0)}</span>)}
-                            {actividad.map((fila) => (
-                                <FilaActividad key={fila.lunes} fila={fila} hoyKey={hoyKey} />
-                            ))}
-                        </div>
-                        <p className="hint">&Uacute;ltimas 8 semanas. M&aacute;s brillo = m&aacute;s tareas completadas ese d&iacute;a.</p>
-                    </section>
-                </div>
-
-                <p className="footer">
-                    <span className="jp">{JP.sistema}</span>
-                    Persistencia local &middot; <b>nada sale de tu equipo</b>
-                </p>
-            </div>
             <div className={'toast' + (toastState ? ' show ' + toastState.kind : '')} role="status" aria-live="polite">
                 {toastState ? toastState.msg : ''}
             </div>

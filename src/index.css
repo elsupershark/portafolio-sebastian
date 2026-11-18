@@ -1,12 +1,12 @@
 /*
-  SISTEMA DE DISEÑO CYBERPUNK / TOKIO DE NOCHE
-  Guía completa: docs/ESTETICA.md
+  SISTEMA DE DISENO CYBERPUNK / TOKIO DE NOCHE
+  Guia completa: docs/ESTETICA.md
   Toda pantalla nueva debe usar estos tokens y clases. No inventar colores aparte.
 */
 @import "tailwindcss";
 
 /* "static" = las variables existen siempre, aunque ninguna clase de Tailwind las use.
-   El módulo exportar las consume directamente con var(--color-neon-green), etc. */
+   Los modulos las consumen directamente con var(--color-neon-green), etc. */
 @theme static {
   --color-void: #05020d;
   --color-void-2: #0b0716;
@@ -15,20 +15,32 @@
   --color-neon-blue: #00d4ff;
   --color-neon-purple: #b026ff;
   --color-neon-pink: #ff2a6d;
-  --color-dim: #8f86b3;
+  --color-dim: #b8afdc;
   --font-display: "Orbitron", "Noto Sans JP", sans-serif;
   --font-mono: "Share Tech Mono", "Noto Sans JP", monospace;
+}
+
+:root {
+  --nav-h: 52px;
 }
 
 /* ---------- Base ---------- */
 html {
   color-scheme: dark;
 }
+html,
+body,
+#root {
+  height: 100%;
+}
 body {
   margin: 0;
   background: var(--color-void);
   color: var(--color-neon-green);
   font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  -webkit-text-stroke: 0.25px currentColor;
 }
 ::selection {
   background: var(--color-neon-purple);
@@ -39,7 +51,102 @@ body {
   scrollbar-color: var(--color-neon-purple) var(--color-void-2);
 }
 
-/* ---------- Fondo: cuadrícula tipo Tron ---------- */
+/* ---------- Estructura de la app: barra superior + vistas que no se desmontan ---------- */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+.topnav {
+  position: relative;
+  z-index: 90;
+  flex: none;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  background: rgba(5, 2, 13, 0.97);
+  border-bottom: 1px solid rgba(176, 38, 255, 0.6);
+  box-shadow: 0 0 18px rgba(176, 38, 255, 0.25);
+}
+.topnav-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  color: var(--color-neon-green);
+  text-shadow: 0 0 8px rgba(0, 255, 156, 0.6);
+}
+.topnav-tabs {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  overflow-x: auto;
+}
+.topnav-tab {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid rgba(184, 175, 220, 0.5);
+  border-radius: 2px;
+  color: #d7fff0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+.topnav-tab .jp {
+  color: var(--color-neon-purple);
+  font-size: 0.82rem;
+  text-shadow: 0 0 8px rgba(176, 38, 255, 0.6);
+}
+.topnav-tab kbd {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0 5px;
+  border: 1px solid rgba(184, 175, 220, 0.5);
+  border-radius: 2px;
+  color: var(--color-dim);
+}
+.topnav-tab:hover {
+  color: var(--color-neon-green);
+  border-color: var(--color-neon-green);
+}
+.topnav-tab.on {
+  background: var(--color-neon-green);
+  border-color: var(--color-neon-green);
+  color: var(--color-void);
+  box-shadow: 0 0 16px rgba(0, 255, 156, 0.5);
+}
+.topnav-tab.on .jp,
+.topnav-tab.on kbd {
+  color: var(--color-void);
+  text-shadow: none;
+  border-color: rgba(5, 2, 13, 0.5);
+}
+.topnav-tab:focus-visible {
+  outline: 2px solid var(--color-neon-blue);
+  outline-offset: 2px;
+}
+.app-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: auto;
+}
+
+/* ---------- Fondo: cuadricula tipo Tron ---------- */
 .grid-bg {
   background-image:
     linear-gradient(rgba(0, 255, 156, 0.07) 1px, transparent 1px),
@@ -48,7 +155,7 @@ body {
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
 }
 
-/* ---------- Líneas de monitor CRT ---------- */
+/* ---------- Lineas de monitor CRT ---------- */
 .scanlines {
   background: repeating-linear-gradient(
     to bottom,
@@ -104,7 +211,7 @@ body {
     color: var(--color-neon-green);
     padding: 0.5rem 0.85rem;
     font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     backdrop-filter: blur(6px);
@@ -119,6 +226,26 @@ body {
   .btn-neon:focus-visible {
     outline: 2px solid var(--color-neon-blue);
     outline-offset: 2px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topnav-brand {
+    display: none;
+  }
+  .topnav-tabs {
+    margin-left: 0;
+    width: 100%;
+  }
+  .topnav-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 0.74rem;
+  }
+  .topnav-tab .jp,
+  .topnav-tab kbd {
+    display: none;
   }
 }
 

@@ -5,6 +5,15 @@ import {
     cmp, fmtNum, fmtBytes, extLabel, scanSource, generateText,
 } from './lib.js'
 
+const JP = {
+    exportar: '\u30a8\u30af\u30b9\u30dd\u30fc\u30c8',
+    proyecto: '\u30d7\u30ed\u30b8\u30a7\u30af\u30c8',
+    formato: '\u30d5\u30a1\u30a4\u30eb\u5f62\u5f0f',
+    archivo: '\u30d5\u30a1\u30a4\u30eb',
+    resultado: '\u7d50\u679c',
+    excluido: '\u9664\u5916',
+}
+
 function buildTree(files) {
     const root = { dirs: new Map(), files: [], all: [] }
     for (const f of files) {
@@ -24,7 +33,7 @@ function buildTree(files) {
     return root
 }
 
-export default function ExportarProyecto({ onVolver }) {
+export default function ExportarProyecto() {
     const [name, setName] = useState('')
     const [source, setSource] = useState(null)
     const [entries, setEntries] = useState([])
@@ -36,6 +45,7 @@ export default function ExportarProyecto({ onVolver }) {
     const [excluded, setExcluded] = useState(() => new Set())
     const [expanded, setExpanded] = useState(() => new Set())
     const [view, setView] = useState('tree')
+    const [tab, setTab] = useState('files')
     const [query, setQuery] = useState('')
     const [busy, setBusy] = useState(false)
     const [progress, setProgress] = useState(null)
@@ -101,6 +111,7 @@ export default function ExportarProyecto({ onVolver }) {
             setQuery('')
             setExpanded(new Set(r.entries.filter((e) => e.path.includes('/')).map((e) => e.path.split('/')[0])))
             setScanned(true)
+            setTab('files')
             toast('Escaneo listo: ' + fmtNum(r.entries.length) + ' archivos de texto candidatos', 'ok')
         } catch (err) {
             console.error(err)
@@ -272,7 +283,7 @@ export default function ExportarProyecto({ onVolver }) {
         if (!visible.length) {
             return (
                 <div className="empty-msg">
-                    {extSel.size ? 'Ning\u00fan archivo coincide con los tipos y el filtro actuales.' : 'Marca al menos un tipo de archivo arriba.'}
+                    {extSel.size ? 'Ning\u00fan archivo coincide con los tipos y el filtro actuales.' : 'Marca al menos un tipo de archivo a la izquierda.'}
                 </div>
             )
         }
@@ -314,13 +325,10 @@ export default function ExportarProyecto({ onVolver }) {
             </div>
         )
         return (
-            <details>
-                <summary>Ver exclusiones autom&aacute;ticas ({fmtNum(auto.length)} archivos &middot; {fmtNum(ignoredDirs.length)} carpetas)</summary>
-                <div className="details-body">
-                    {ignoredDirs.length > 0 && sec('Carpetas ignoradas', ignoredDirs)}
-                    {Object.keys(groups).map((r) => sec(REASONS[r] || r, groups[r].slice().sort(cmp)))}
-                </div>
-            </details>
+            <>
+                {ignoredDirs.length > 0 && sec('Carpetas ignoradas', ignoredDirs)}
+                {Object.keys(groups).map((r) => sec(REASONS[r] || r, groups[r].slice().sort(cmp)))}
+            </>
         )
     }
 
@@ -340,6 +348,7 @@ export default function ExportarProyecto({ onVolver }) {
                 output: r.output, sig, included: r.included, skipped: r.skipped,
                 manual: extSelected.length - included.length, total: r.total, warnings: r.warnings,
             })
+            setTab('result')
             if (r.output) toast('Listo: ' + r.included + ' archivos incluidos', 'ok')
         } catch (err) {
             console.error(err)
@@ -347,6 +356,7 @@ export default function ExportarProyecto({ onVolver }) {
                 output: '', sig, included: 0, skipped: 0, manual: 0, total: 0,
                 warnings: [], error: 'Ocurri\u00f3 un error al generar el texto: ' + (err && err.message ? err.message : 'error desconocido') + '.',
             })
+            setTab('result')
         } finally {
             setProgress(null)
             setBusy(false)
@@ -389,6 +399,8 @@ export default function ExportarProyecto({ onVolver }) {
     const hasEntries = entries.length > 0
     const hasFallback = typeof document !== 'undefined' && 'webkitdirectory' in document.createElement('input')
     const hasPicker = typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function'
+    const hasResult = !!(result && result.output)
+    const hasExcl = auto.length > 0 || ignoredDirs.length > 0
 
     return (
         <div className="exp-root">
@@ -402,188 +414,211 @@ export default function ExportarProyecto({ onVolver }) {
                 <header>
                     <div className="logo">&lt;/&gt;</div>
                     <div className="grow">
-                        <p className="eyebrow">{'// エクスポート · MÓDULO EN LÍNEA'}</p>
+                        <p className="eyebrow">{'// ' + JP.exportar + ' \u00b7 M\u00d3DULO EN L\u00cdNEA'}</p>
                         <h1 className="glitch" data-text="Exportar proyecto">Exportar proyecto</h1>
-                        <p className="sub">Elige tipos de archivo, descarta lo que no quieras y copia todo el c&oacute;digo en un &uacute;nico texto. Todo se procesa en tu navegador.</p>
                     </div>
-                    {onVolver && <button type="button" className="btn-ghost btn-sm" onClick={onVolver}>&larr; VOLVER &middot; 戻る</button>}
                 </header>
 
-                {/* 1. Proyecto */}
-                <section className="panel">
-                    <h2>1 &middot; Proyecto <span className="jp">プロジェクト</span></h2>
-                    <div className="row">
-                        <button type="button" className="btn-primary btn-big" onClick={onSelect} disabled={busy}>SELECCIONAR PROYECTO</button>
-                        <button type="button" className="btn-secondary" onClick={() => runScan(source)} disabled={busy || !source}>ESCANEAR DE NUEVO</button>
-                        <div className="project grow">
-                            <span className="label">Nombre</span>
-                            <span className={'name' + (name ? '' : ' empty')}>{name || '\u2014 ninguno \u2014'}</span>
-                        </div>
-                    </div>
-                    {hasPicker && hasFallback && (
-                        <div className="hint">
-                            &iquest;Problemas con el selector?{' '}
-                            <button type="button" className="link-btn" disabled={busy} onClick={() => fallbackRef.current && fallbackRef.current.click()}>
-                                Usar selector alternativo
-                            </button>
-                        </div>
-                    )}
-                    <input ref={fallbackRef} type="file" webkitdirectory="" multiple hidden onChange={onFallback} />
-
-                    <div className="opts">
-                        <div className="field">
-                            <label htmlFor="inIgnore">Carpetas a ignorar al escanear (separadas por coma)</label>
-                            <input id="inIgnore" type="text" spellCheck={false} value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} />
-                        </div>
-                        <div className="field">
-                            <label htmlFor="inMaxFile">M&aacute;x. por archivo (KB)</label>
-                            <input id="inMaxFile" type="number" min="1" value={maxFile} onChange={(e) => setMaxFile(e.target.value)} />
-                        </div>
-                        <div className="field">
-                            <label htmlFor="inMaxTotal">M&aacute;x. total (MB)</label>
-                            <input id="inMaxTotal" type="number" min="1" value={maxTotal} onChange={(e) => setMaxTotal(e.target.value)} />
-                        </div>
-                    </div>
-                    <p className="hint" style={{ marginTop: 12 }}>
-                        <label className="check">
-                            <input type="checkbox" checked={detect} onChange={(e) => setDetect(e.target.checked)} />
-                            Detectar y excluir secretos dentro del contenido (claves, tokens, contrase&ntilde;as)
-                        </label>
-                    </p>
-                    <p className="hint">
-                        Nunca se leen <b>.env</b>, claves privadas ni credenciales. Cambia las carpetas ignoradas y pulsa <b>ESCANEAR DE NUEVO</b> para aplicarlas.
-                    </p>
-
-                    {progress && (
-                        <div className="progress">
-                            <div className={'bar' + (progress.ratio == null ? ' indeterminate' : '')}>
-                                <i style={progress.ratio == null ? undefined : { width: Math.round(progress.ratio * 100) + '%' }} />
-                            </div>
-                            <div className="progress-text">{progress.text}</div>
-                        </div>
-                    )}
-                </section>
-
-                {scanned && (
-                    <>
-                        {/* 2. Tipos */}
+                <div className="exp-main">
+                    {/* Columna izquierda: proyecto y tipos */}
+                    <div className="exp-side">
                         <section className="panel">
-                            <h2>2 &middot; Tipos de archivo <span className="jp">ファイル形式</span></h2>
-                            <div className="toolbar">
-                                <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExtSel(new Set(extKnown))}>MARCAR TODOS</button>
-                                <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExtSel(new Set())}>QUITAR TODOS</button>
+                            <h2>1 &middot; Proyecto <span className="jp">{JP.proyecto}</span></h2>
+                            <div className="project">
+                                <span className="label">Nombre</span>
+                                <span className={'name' + (name ? '' : ' empty')}>{name || '\u2014 ninguno \u2014'}</span>
                             </div>
-                            <div className="chips" role="group" aria-label="Extensiones a incluir">
-                                {extKnown.map((k) => {
-                                    const n = counts[k] || 0
-                                    return (
-                                        <label key={k} className={'chip' + (n ? '' : ' zero')}>
-                                            <input type="checkbox" checked={extSel.has(k)} onChange={(e) => toggleExt(k, e.target.checked)} />
-                                            <span>{extLabel(k)} <small>{fmtNum(n)}</small></span>
-                                        </label>
-                                    )
-                                })}
+                            <div className="row">
+                                <button type="button" className="btn-primary btn-big grow" onClick={onSelect} disabled={busy}>SELECCIONAR PROYECTO</button>
+                                <button type="button" className="btn-secondary" onClick={() => runScan(source)} disabled={busy || !source}>ESCANEAR DE NUEVO</button>
                             </div>
-                            {detected.length > 0 && (
-                                <>
-                                    <div className="sub-h">Detectadas en el proyecto (pulsa para a&ntilde;adir)</div>
-                                    <div className="chips">
-                                        {detected.map((k) => (
-                                            <button key={k} type="button" className="chip-add" onClick={() => addExtensions(k)}>
-                                                + .{k} &middot; {fmtNum(counts[k])}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
+                            {hasPicker && hasFallback && (
+                                <div className="hint">
+                                    &iquest;Problemas con el selector?{' '}
+                                    <button type="button" className="link-btn" disabled={busy} onClick={() => fallbackRef.current && fallbackRef.current.click()}>
+                                        Usar selector alternativo
+                                    </button>
+                                </div>
                             )}
-                            <div className="add-row">
-                                <input
-                                    type="text" placeholder="A&ntilde;adir extensi&oacute;n: .java, .xml, .csv..." spellCheck={false} aria-label="A&ntilde;adir extensi&oacute;n"
-                                    value={newExt} onChange={(e) => setNewExt(e.target.value)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (addExtensions(newExt)) setNewExt('') } }}
-                                />
-                                <button type="button" className="btn-secondary" onClick={() => { if (addExtensions(newExt)) setNewExt('') }}>A&Ntilde;ADIR</button>
-                            </div>
+                            <input ref={fallbackRef} type="file" webkitdirectory="" multiple hidden onChange={onFallback} />
+
+                            {progress && (
+                                <div className="progress">
+                                    <div className={'bar' + (progress.ratio == null ? ' indeterminate' : '')}>
+                                        <i style={progress.ratio == null ? undefined : { width: Math.round(progress.ratio * 100) + '%' }} />
+                                    </div>
+                                    <div className="progress-text">{progress.text}</div>
+                                </div>
+                            )}
+
+                            <details style={{ marginTop: 12 }}>
+                                <summary>Opciones avanzadas</summary>
+                                <div className="opts-body">
+                                    <div className="field">
+                                        <label htmlFor="inIgnore">Carpetas a ignorar (separadas por coma)</label>
+                                        <input id="inIgnore" type="text" spellCheck={false} value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} />
+                                    </div>
+                                    <div className="opts-2">
+                                        <div className="field">
+                                            <label htmlFor="inMaxFile">M&aacute;x. por archivo (KB)</label>
+                                            <input id="inMaxFile" type="number" min="1" value={maxFile} onChange={(e) => setMaxFile(e.target.value)} />
+                                        </div>
+                                        <div className="field">
+                                            <label htmlFor="inMaxTotal">M&aacute;x. total (MB)</label>
+                                            <input id="inMaxTotal" type="number" min="1" value={maxTotal} onChange={(e) => setMaxTotal(e.target.value)} />
+                                        </div>
+                                    </div>
+                                    <label className="check">
+                                        <input type="checkbox" checked={detect} onChange={(e) => setDetect(e.target.checked)} />
+                                        Detectar y excluir secretos en el contenido
+                                    </label>
+                                    <p className="hint" style={{ margin: 0 }}>
+                                        Nunca se leen <b>.env</b>, claves privadas ni credenciales. Tras cambiar las carpetas ignoradas, pulsa <b>ESCANEAR DE NUEVO</b>.
+                                    </p>
+                                </div>
+                            </details>
                         </section>
 
-                        {/* 3. Archivos */}
-                        <section className="panel">
-                            <h2>3 &middot; Archivos encontrados <span className="jp">ファイル</span></h2>
-                            <div className="toolbar">
-                                <input type="search" placeholder="Filtrar por nombre o ruta..." aria-label="Filtrar archivos" value={query} onChange={(e) => setQuery(e.target.value)} />
-                                <div className="seg" role="group" aria-label="Vista">
-                                    <button type="button" aria-pressed={view === 'tree'} onClick={() => setView('tree')}>&Aacute;RBOL</button>
-                                    <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>LISTA</button>
+                        {scanned && (
+                            <section className="panel">
+                                <h2>2 &middot; Tipos de archivo <span className="jp">{JP.formato}</span></h2>
+                                <div className="toolbar" style={{ marginBottom: 10 }}>
+                                    <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExtSel(new Set(extKnown))}>MARCAR TODOS</button>
+                                    <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExtSel(new Set())}>QUITAR TODOS</button>
                                 </div>
-                            </div>
-                            <div className="toolbar">
-                                <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setVisible(true)}>MARCAR VISIBLES</button>
-                                <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setVisible(false)}>DESMARCAR VISIBLES</button>
-                                {view === 'tree' && (
+                                <div className="chips" role="group" aria-label="Extensiones a incluir">
+                                    {extKnown.map((k) => {
+                                        const n = counts[k] || 0
+                                        return (
+                                            <label key={k} className={'chip' + (n ? '' : ' zero')}>
+                                                <input type="checkbox" checked={extSel.has(k)} onChange={(e) => toggleExt(k, e.target.checked)} />
+                                                <span>{extLabel(k)} <small>{fmtNum(n)}</small></span>
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                                {detected.length > 0 && (
                                     <>
-                                        <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={expandAll}>EXPANDIR TODO</button>
-                                        <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExpanded(new Set())}>CONTRAER TODO</button>
+                                        <div className="sub-h">Detectadas (pulsa para a&ntilde;adir)</div>
+                                        <div className="chips">
+                                            {detected.map((k) => (
+                                                <button key={k} type="button" className="chip-add" onClick={() => addExtensions(k)}>
+                                                    + .{k} &middot; {fmtNum(counts[k])}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </>
                                 )}
-                                <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExcluded(new Set())}>RESTABLECER EXCLUSIONES</button>
-                            </div>
-                            <p className="counter">
-                                Seleccionados: <b>{fmtNum(included.length)}</b> archivos &middot; <b>{fmtBytes(includedSize)}</b>
-                                {' '}({fmtNum(extSelected.length)} coinciden con los tipos elegidos &middot; {fmtNum(extSelected.length - included.length)} excluidos a mano)
-                            </p>
-                            <div className="tree" aria-label="Archivos encontrados">{renderFiles()}</div>
-                            <p className="hint">Desmarca un archivo o una carpeta para excluirlo del resultado. Las carpetas marcan o desmarcan todo su contenido.</p>
-                            {renderAuto()}
-                        </section>
-
-                        {/* 4. Resultado */}
-                        <section className="panel">
-                            <h2>4 &middot; Resultado <span className="jp">結果</span></h2>
-                            <div className="toolbar">
-                                <button type="button" className="btn-primary" disabled={busy || !included.length} onClick={generate}>GENERAR TEXTO</button>
-                                <button type="button" className="btn-secondary" disabled={busy || !(result && result.output)} onClick={copyAll}>COPIAR TODO</button>
-                                <button type="button" className="btn-secondary" disabled={busy || !(result && result.output)} onClick={download}>DESCARGAR TXT</button>
-                                <button type="button" className="btn-ghost" disabled={busy || !result} onClick={() => setResult(null)}>LIMPIAR</button>
-                            </div>
-                            {stale && (
-                                <div className="alert info" style={{ marginBottom: 12 }}>
-                                    La selecci&oacute;n cambi&oacute; desde la &uacute;ltima generaci&oacute;n. Pulsa GENERAR TEXTO para actualizar el resultado.
+                                <div className="add-row">
+                                    <input
+                                        type="text" placeholder="A&ntilde;adir: .java, .xml..." spellCheck={false} aria-label="A&ntilde;adir extensi&oacute;n"
+                                        value={newExt} onChange={(e) => setNewExt(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (addExtensions(newExt)) setNewExt('') } }}
+                                    />
+                                    <button type="button" className="btn-secondary btn-sm" onClick={() => { if (addExtensions(newExt)) setNewExt('') }}>A&Ntilde;ADIR</button>
                                 </div>
-                            )}
-                            {result && (
-                                <>
-                                    <div className="stats">
-                                        <div className="stat ok"><div className="v">{fmtNum(result.included)}</div><div className="k">Incluidos</div></div>
-                                        <div className="stat"><div className="v">{fmtNum(result.skipped)}</div><div className="k">Omitidos al leer</div></div>
-                                        <div className="stat"><div className="v">{fmtNum(result.manual)}</div><div className="k">Excluidos a mano</div></div>
-                                        <div className="stat"><div className="v">{fmtBytes(result.total)}</div><div className="k">Tama&ntilde;o</div></div>
-                                        <div className="stat"><div className="v">{fmtNum(result.output.length)}</div><div className="k">Caracteres</div></div>
-                                    </div>
-                                    <div className="alerts">
-                                        {result.error && <div className="alert error">{result.error}</div>}
-                                        {!result.error && !result.included && <div className="alert error">No qued&oacute; ning&uacute;n archivo para exportar con la selecci&oacute;n actual.</div>}
-                                        {result.warnings.map((w, i) => <div key={i} className="alert warn">{w}</div>)}
-                                        {result.output.length > 400000 && (
-                                            <div className="alert warn">
-                                                El texto es muy grande ({fmtNum(result.output.length)} caracteres, aprox. {fmtNum(Math.round(result.output.length / 4))} tokens). Puede superar el l&iacute;mite de algunas IA; considera excluir carpetas o tipos.
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                            <textarea
-                                ref={outputRef} readOnly spellCheck={false} aria-label="Texto generado"
-                                value={result ? result.output : ''}
-                                placeholder="Aqu&iacute; aparecer&aacute; el texto generado cuando pulses GENERAR TEXTO..."
-                            />
-                        </section>
-                    </>
-                )}
+                            </section>
+                        )}
+                    </div>
 
-                <p className="footer">
-                    <span className="jp">システム正常</span>
-                    Sin servidores &middot; sin dependencias &middot; <b>nada sale de tu equipo</b>
-                </p>
+                    {/* Columna derecha: archivos / resultado / excluidos, con acciones siempre visibles */}
+                    <section className="panel exp-work">
+                        <div className="work-head">
+                            <div className="seg" role="group" aria-label="Secciones">
+                                <button type="button" aria-pressed={tab === 'files'} onClick={() => setTab('files')}>
+                                    {'ARCHIVOS' + (scanned ? ' ' + included.length + '/' + extSelected.length : '')}
+                                </button>
+                                <button type="button" aria-pressed={tab === 'result'} onClick={() => setTab('result')}>
+                                    {'RESULTADO' + (stale ? ' *' : '')}
+                                </button>
+                                {hasExcl && (
+                                    <button type="button" aria-pressed={tab === 'excluded'} onClick={() => setTab('excluded')}>EXCLUIDOS</button>
+                                )}
+                            </div>
+                            <span className="jp" style={{ margin: 0 }}>{tab === 'result' ? JP.resultado : tab === 'excluded' ? JP.excluido : JP.archivo}</span>
+                            {stale && <span className="stale">Selecci&oacute;n cambiada: vuelve a generar</span>}
+                            <div className="row push" style={{ gap: 8 }}>
+                                <button type="button" className="btn-primary btn-sm" disabled={busy || !included.length} onClick={generate}>GENERAR TEXTO</button>
+                                <button type="button" className="btn-secondary btn-sm" disabled={busy || !hasResult} onClick={copyAll}>COPIAR TODO</button>
+                                <button type="button" className="btn-secondary btn-sm" disabled={busy || !hasResult} onClick={download}>DESCARGAR TXT</button>
+                                <button type="button" className="btn-ghost btn-sm" disabled={busy || !result} onClick={() => setResult(null)}>LIMPIAR</button>
+                            </div>
+                        </div>
+
+                        {tab === 'files' && (
+                            <div className="work-body">
+                                {!scanned ? (
+                                    <p className="empty-msg">Selecciona un proyecto a la izquierda para empezar.</p>
+                                ) : (
+                                    <>
+                                        <div className="toolbar">
+                                            <input type="search" placeholder="Filtrar por nombre o ruta..." aria-label="Filtrar archivos" value={query} onChange={(e) => setQuery(e.target.value)} />
+                                            <div className="seg" role="group" aria-label="Vista">
+                                                <button type="button" aria-pressed={view === 'tree'} onClick={() => setView('tree')}>&Aacute;RBOL</button>
+                                                <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>LISTA</button>
+                                            </div>
+                                        </div>
+                                        <div className="toolbar">
+                                            <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setVisible(true)}>MARCAR VISIBLES</button>
+                                            <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setVisible(false)}>DESMARCAR VISIBLES</button>
+                                            {view === 'tree' && (
+                                                <>
+                                                    <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={expandAll}>EXPANDIR</button>
+                                                    <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExpanded(new Set())}>CONTRAER</button>
+                                                </>
+                                            )}
+                                            <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExcluded(new Set())}>RESTABLECER</button>
+                                        </div>
+                                        <p className="counter">
+                                            Seleccionados: <b>{fmtNum(included.length)}</b> archivos &middot; <b>{fmtBytes(includedSize)}</b>
+                                            {' '}&middot; {fmtNum(extSelected.length - included.length)} excluidos a mano
+                                        </p>
+                                        <div className="tree" aria-label="Archivos encontrados">{renderFiles()}</div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {tab === 'result' && (
+                            <div className="work-body">
+                                {result && (
+                                    <>
+                                        <div className="stats">
+                                            <div className="stat ok"><div className="v">{fmtNum(result.included)}</div><div className="k">Incluidos</div></div>
+                                            <div className="stat"><div className="v">{fmtNum(result.skipped)}</div><div className="k">Omitidos</div></div>
+                                            <div className="stat"><div className="v">{fmtNum(result.manual)}</div><div className="k">A mano</div></div>
+                                            <div className="stat"><div className="v">{fmtBytes(result.total)}</div><div className="k">Tama&ntilde;o</div></div>
+                                            <div className="stat"><div className="v">{fmtNum(result.output.length)}</div><div className="k">Caracteres</div></div>
+                                        </div>
+                                        <div className="alerts">
+                                            {result.error && <div className="alert error">{result.error}</div>}
+                                            {!result.error && !result.included && <div className="alert error">No qued&oacute; ning&uacute;n archivo para exportar con la selecci&oacute;n actual.</div>}
+                                            {result.warnings.map((w, i) => <div key={i} className="alert warn">{w}</div>)}
+                                            {result.output.length > 400000 && (
+                                                <div className="alert warn">
+                                                    Texto muy grande ({fmtNum(result.output.length)} caracteres, aprox. {fmtNum(Math.round(result.output.length / 4))} tokens). Considera excluir carpetas o tipos.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                                <textarea
+                                    ref={outputRef} readOnly spellCheck={false} aria-label="Texto generado"
+                                    value={result ? result.output : ''}
+                                    placeholder="Aqu&iacute; aparecer&aacute; el texto cuando pulses GENERAR TEXTO..."
+                                />
+                            </div>
+                        )}
+
+                        {tab === 'excluded' && (
+                            <div className="work-body">
+                                <div className="excl" style={{ flex: '1 1 auto', minHeight: 0 }}>
+                                    {renderAuto() || <p className="empty-msg">No hay exclusiones autom&aacute;ticas.</p>}
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                </div>
             </div>
             <div className={'toast' + (toastState ? ' show ' + toastState.kind : '')} role="status" aria-live="polite">
                 {toastState ? toastState.msg : ''}

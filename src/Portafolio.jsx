@@ -1,6 +1,6 @@
 export default function Portafolio() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-void px-6 font-mono text-neon-green">
+    <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-void px-6 font-mono text-neon-green">
       {/* Fondo: cuadrícula, resplandores y scanlines */}
       <div className="grid-bg pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full bg-neon-purple/30 blur-[120px]" />
