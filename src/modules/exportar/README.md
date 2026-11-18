@@ -1,19 +1,40 @@
-# Modulo Exportar proyecto
+# portafolio-sebastian
 
-Herramienta integrada al portafolio para convertir un proyecto en un unico texto.
+Portafolio personal con estética cyberpunk / Tokio de noche.
 
-Estructura:
+**Regla de diseño:** toda la app mantiene la misma estética neón (oscuro, verde, morado, azul, toques japoneses).
+Guía completa en [`docs/ESTETICA.md`](docs/ESTETICA.md).
 
-    src/modules/exportar/
-        ExportarProyecto.jsx   Interfaz (React)
-        lib.js                 Escaneo, clasificacion, deteccion de secretos y generacion
-        exportar.css           Estilos aislados bajo .exp-root
+## Stack
 
-Uso:
+- React 19
+- Vite
+- Tailwind CSS 4
 
-    1. Pulsa "Exportar proyecto" (arriba a la derecha) en el portafolio.
-    2. Selecciona la carpeta del proyecto.
-    3. Elige tipos de archivo y excluye lo que no quieras.
-    4. Genera el texto, copialo o descargalo como .txt.
+## Comandos
 
-Todo se procesa en el navegador. Nunca se leen .env, claves privadas ni credenciales.
+    npm install
+    npm run dev
+    npm run build
+    npm run lint
+
+## Estructura
+
+    src/
+        main.jsx                    Punto de entrada
+        index.css                   Tokens de color, fuentes y efectos globales
+        App.jsx                     Selector de vista (portafolio / exportar)
+        Portafolio.jsx              Pantalla principal
+        modules/
+            exportar/               Modulo "Exportar proyecto"
+                ExportarProyecto.jsx
+                lib.js
+                exportar.css
+    docs/
+        ESTETICA.md                 Guía de estilo obligatoria
+    CLAUDE.md                       Instrucciones para asistentes de IA
+
+## Módulo Exportar proyecto
+
+Convierte un proyecto completo en un único texto (para pegarlo en una IA, por ejemplo).
+Todo se procesa en el navegador; nunca se leen `.env`, claves privadas ni credenciales.

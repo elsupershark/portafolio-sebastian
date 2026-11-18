@@ -1,4 +1,4 @@
-export default function App() {
+export default function Portafolio() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-void px-6 font-mono text-neon-green">
       {/* Fondo: cuadrícula, resplandores y scanlines */}

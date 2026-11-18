@@ -1,0 +1,14 @@
+# Instrucciones para asistentes de IA
+
+Antes de crear o modificar cualquier interfaz (componentes, módulos, estilos), lee
+`docs/ESTETICA.md` y síguelo al pie de la letra.
+
+Resumen: estética cyberpunk / Tokio de noche. Fondo void (#05020d), neón verde (#00ff9c),
+morado (#b026ff) y azul (#00d4ff). Orbitron + Share Tech Mono. Cuadrícula Tron, scanlines CRT,
+glitch en títulos y toques en japonés. Nada de modo claro ni colores fuera del sistema.
+
+Los tokens de color y las clases globales (.grid-bg, .scanlines, .glitch, .cursor, .btn-neon)
+están en `src/index.css`.
+
+Stack: React 19 + Vite + Tailwind CSS 4. Indentación de 4 espacios en los módulos nuevos.
+Los textos de la interfaz van en español.

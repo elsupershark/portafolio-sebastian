@@ -392,19 +392,26 @@ export default function ExportarProyecto({ onVolver }) {
 
     return (
         <div className="exp-root">
+            {/* Fondo cyberpunk: cuadricula, resplandores y scanlines */}
+            <div className="exp-bg-grid" aria-hidden="true" />
+            <div className="exp-glow exp-glow-a" aria-hidden="true" />
+            <div className="exp-glow exp-glow-b" aria-hidden="true" />
+            <div className="exp-scan" aria-hidden="true" />
+
             <div className="wrap">
                 <header>
                     <div className="logo">&lt;/&gt;</div>
                     <div className="grow">
-                        <h1>Exportar <span>proyecto</span></h1>
+                        <p className="eyebrow">{'// エクスポート · MÓDULO EN LÍNEA'}</p>
+                        <h1 className="glitch" data-text="Exportar proyecto">Exportar proyecto</h1>
                         <p className="sub">Elige tipos de archivo, descarta lo que no quieras y copia todo el c&oacute;digo en un &uacute;nico texto. Todo se procesa en tu navegador.</p>
                     </div>
-                    {onVolver && <button type="button" className="btn-ghost btn-sm" onClick={onVolver}>&larr; VOLVER</button>}
+                    {onVolver && <button type="button" className="btn-ghost btn-sm" onClick={onVolver}>&larr; VOLVER &middot; 戻る</button>}
                 </header>
 
                 {/* 1. Proyecto */}
                 <section className="panel">
-                    <h2>1 &middot; Proyecto</h2>
+                    <h2>1 &middot; Proyecto <span className="jp">プロジェクト</span></h2>
                     <div className="row">
                         <button type="button" className="btn-primary btn-big" onClick={onSelect} disabled={busy}>SELECCIONAR PROYECTO</button>
                         <button type="button" className="btn-secondary" onClick={() => runScan(source)} disabled={busy || !source}>ESCANEAR DE NUEVO</button>
@@ -426,7 +433,7 @@ export default function ExportarProyecto({ onVolver }) {
                     <div className="opts">
                         <div className="field">
                             <label htmlFor="inIgnore">Carpetas a ignorar al escanear (separadas por coma)</label>
-                            <input id="inIgnore" type="text" spellcheck="false" value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} />
+                            <input id="inIgnore" type="text" spellCheck={false} value={ignoreText} onChange={(e) => setIgnoreText(e.target.value)} />
                         </div>
                         <div className="field">
                             <label htmlFor="inMaxFile">M&aacute;x. por archivo (KB)</label>
@@ -461,7 +468,7 @@ export default function ExportarProyecto({ onVolver }) {
                     <>
                         {/* 2. Tipos */}
                         <section className="panel">
-                            <h2>2 &middot; Tipos de archivo</h2>
+                            <h2>2 &middot; Tipos de archivo <span className="jp">ファイル形式</span></h2>
                             <div className="toolbar">
                                 <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExtSel(new Set(extKnown))}>MARCAR TODOS</button>
                                 <button type="button" className="btn-ghost btn-sm" disabled={!hasEntries} onClick={() => setExtSel(new Set())}>QUITAR TODOS</button>
@@ -491,7 +498,7 @@ export default function ExportarProyecto({ onVolver }) {
                             )}
                             <div className="add-row">
                                 <input
-                                    type="text" placeholder="A&ntilde;adir extensi&oacute;n: .java, .xml, .csv..." spellcheck="false" aria-label="A&ntilde;adir extensi&oacute;n"
+                                    type="text" placeholder="A&ntilde;adir extensi&oacute;n: .java, .xml, .csv..." spellCheck={false} aria-label="A&ntilde;adir extensi&oacute;n"
                                     value={newExt} onChange={(e) => setNewExt(e.target.value)}
                                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (addExtensions(newExt)) setNewExt('') } }}
                                 />
@@ -501,7 +508,7 @@ export default function ExportarProyecto({ onVolver }) {
 
                         {/* 3. Archivos */}
                         <section className="panel">
-                            <h2>3 &middot; Archivos encontrados</h2>
+                            <h2>3 &middot; Archivos encontrados <span className="jp">ファイル</span></h2>
                             <div className="toolbar">
                                 <input type="search" placeholder="Filtrar por nombre o ruta..." aria-label="Filtrar archivos" value={query} onChange={(e) => setQuery(e.target.value)} />
                                 <div className="seg" role="group" aria-label="Vista">
@@ -531,7 +538,7 @@ export default function ExportarProyecto({ onVolver }) {
 
                         {/* 4. Resultado */}
                         <section className="panel">
-                            <h2>4 &middot; Resultado</h2>
+                            <h2>4 &middot; Resultado <span className="jp">結果</span></h2>
                             <div className="toolbar">
                                 <button type="button" className="btn-primary" disabled={busy || !included.length} onClick={generate}>GENERAR TEXTO</button>
                                 <button type="button" className="btn-secondary" disabled={busy || !(result && result.output)} onClick={copyAll}>COPIAR TODO</button>
@@ -565,7 +572,7 @@ export default function ExportarProyecto({ onVolver }) {
                                 </>
                             )}
                             <textarea
-                                ref={outputRef} readOnly spellcheck="false" aria-label="Texto generado"
+                                ref={outputRef} readOnly spellCheck={false} aria-label="Texto generado"
                                 value={result ? result.output : ''}
                                 placeholder="Aqu&iacute; aparecer&aacute; el texto generado cuando pulses GENERAR TEXTO..."
                             />
@@ -573,7 +580,10 @@ export default function ExportarProyecto({ onVolver }) {
                     </>
                 )}
 
-                <p className="footer">Sin servidores &middot; sin dependencias &middot; <b>nada sale de tu equipo</b></p>
+                <p className="footer">
+                    <span className="jp">システム正常</span>
+                    Sin servidores &middot; sin dependencias &middot; <b>nada sale de tu equipo</b>
+                </p>
             </div>
             <div className={'toast' + (toastState ? ' show ' + toastState.kind : '')} role="status" aria-live="polite">
                 {toastState ? toastState.msg : ''}

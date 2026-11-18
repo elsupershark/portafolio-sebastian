@@ -1,16 +1,45 @@
+/*
+  SISTEMA DE DISEÑO CYBERPUNK / TOKIO DE NOCHE
+  Guía completa: docs/ESTETICA.md
+  Toda pantalla nueva debe usar estos tokens y clases. No inventar colores aparte.
+*/
 @import "tailwindcss";
 
-@theme {
+/* "static" = las variables existen siempre, aunque ninguna clase de Tailwind las use.
+   El módulo exportar las consume directamente con var(--color-neon-green), etc. */
+@theme static {
   --color-void: #05020d;
+  --color-void-2: #0b0716;
+  --color-panel: #120a24;
   --color-neon-green: #00ff9c;
   --color-neon-blue: #00d4ff;
   --color-neon-purple: #b026ff;
   --color-neon-pink: #ff2a6d;
-  --font-display: "Orbitron", sans-serif;
-  --font-mono: "Share Tech Mono", monospace;
+  --color-dim: #8f86b3;
+  --font-display: "Orbitron", "Noto Sans JP", sans-serif;
+  --font-mono: "Share Tech Mono", "Noto Sans JP", monospace;
 }
 
-/* Cuadrícula tipo Tron */
+/* ---------- Base ---------- */
+html {
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--color-void);
+  color: var(--color-neon-green);
+  font-family: var(--font-mono);
+}
+::selection {
+  background: var(--color-neon-purple);
+  color: #fff;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neon-purple) var(--color-void-2);
+}
+
+/* ---------- Fondo: cuadrícula tipo Tron ---------- */
 .grid-bg {
   background-image:
     linear-gradient(rgba(0, 255, 156, 0.07) 1px, transparent 1px),
@@ -19,7 +48,7 @@
   mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
 }
 
-/* Líneas de monitor CRT */
+/* ---------- Líneas de monitor CRT ---------- */
 .scanlines {
   background: repeating-linear-gradient(
     to bottom,
@@ -30,7 +59,7 @@
   );
 }
 
-/* Efecto glitch */
+/* ---------- Efecto glitch (requiere data-text igual al contenido) ---------- */
 .glitch {
   position: relative;
   text-shadow: 0 0 8px #00ff9c, 0 0 24px rgba(0, 255, 156, 0.6);
@@ -65,3 +94,38 @@
 
 @keyframes blink { 50% { opacity: 0; } }
 .cursor { animation: blink 1s steps(1) infinite; }
+
+/* ---------- Componentes reutilizables ---------- */
+@layer components {
+  .btn-neon {
+    cursor: pointer;
+    border: 1px solid var(--color-neon-green);
+    background: rgba(5, 2, 13, 0.75);
+    color: var(--color-neon-green);
+    padding: 0.5rem 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 10px rgba(0, 255, 156, 0.25), inset 0 0 10px rgba(0, 255, 156, 0.08);
+    transition: background 0.15s ease, box-shadow 0.15s ease, text-shadow 0.15s ease;
+  }
+  .btn-neon:hover {
+    background: rgba(0, 255, 156, 0.12);
+    text-shadow: 0 0 8px rgba(0, 255, 156, 0.8);
+    box-shadow: 0 0 20px rgba(0, 255, 156, 0.5), inset 0 0 12px rgba(0, 255, 156, 0.15);
+  }
+  .btn-neon:focus-visible {
+    outline: 2px solid var(--color-neon-blue);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glitch::before,
+  .glitch::after,
+  .cursor {
+    animation: none;
+  }
+}
